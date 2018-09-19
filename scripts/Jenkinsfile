@@ -38,7 +38,7 @@ pipeline {
         mme_vm_template = "template${vm_template}"
         hss_vm_template = "template${vm_template}"
         spgw_vm_template = "template${vm_template}-${spgw_kernel_version}"
-        PYTHONPATH="${PYTHONPATH}:${WORKSPACE}/ci-scripts/python/oaicnci/"
+        PYTHONPATH=":${WORKSPACE}/ci-scripts/python/oaicnci/"
     }
 
     stages {
@@ -50,7 +50,6 @@ pipeline {
                     echo "Git Branch is ${GIT_BRANCH}"
                     echo "Git Commit is ${GIT_COMMIT}"
                     echo "Node       is ${NODE_NAME}"
-                    echo "PYTHONPATH is ${PYTHONPATH}"
 
                     def allParametersPresent = true
 
@@ -72,8 +71,8 @@ pipeline {
         }
         stage ('Retrieve Source Code') {
             steps {
-                sh "sudo sak4ci init  --management-nw '192.168.21.0/24'"
                 sh "sudo -HE PYTHONPATH=${PYTHONPATH} ./ci-scripts/host/scripts/sak4ci init  --management-nw '192.168.21.0/24'"
+                sh "sudo -HE PYTHONPATH=${PYTHONPATH} ./ci-scripts/host/scripts/sak4ci scm --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER}"
             }
         }
     }
