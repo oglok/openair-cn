@@ -20,9 +20,12 @@
  *      contact@openairinterface.org
  */
 
+// Location of the CN executor node 
+def cn_ci_host = params.Host_CN_CI_Server
+
 pipeline {
     agent {
-        label 'orion'
+        label cn_ci_host
     }
     options {
         disableConcurrentBuilds()
@@ -109,8 +112,8 @@ pipeline {
         cleanup {
             script {
                 if (fileExists("${WORKSPACE}/../../local_archives")) {
-                    sh "tar -cjhf ${JOB_NAME}-${BUILD_ID}.bz2 *.log"
-                    sh "mv ${JOB_NAME}-${BUILD_ID}.bz2 ${WORKSPACE}/../../local_archives"
+                    sh "tar -cjhf ${JOB_NAME}-build${BUILD_ID}.bz2 *.log"
+                    sh "mv ${JOB_NAME}-build${BUILD_ID}.bz2 ${WORKSPACE}/../../local_archives"
                 }
             }
         }
