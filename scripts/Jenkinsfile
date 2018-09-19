@@ -38,6 +38,7 @@ pipeline {
         mme_vm_template = "template${vm_template}"
         hss_vm_template = "template${vm_template}"
         spgw_vm_template = "template${vm_template}-${spgw_kernel_version}"
+        PYTHONPATH="${PYTHONPATH}:${WORKSPACE}/ci-scripts/python/oaicnci/"
     }
 
     stages {
@@ -49,13 +50,20 @@ pipeline {
                     echo "Git Branch is ${GIT_BRANCH}"
                     echo "Git Commit is ${GIT_COMMIT}"
                     echo "Node       is ${NODE_NAME}"
+                    echo "PYTHONPATH is ${PYTHONPATH}"
 
                     def allParametersPresent = true
 
                     if (params.ToolGitLabRepository_Credentials == null) {
                         allParametersPresent = false
                     }
-                    if (allParametersPresent == false) {
+                    if (allParametersPresent) {
+                        withCredentials([
+                            [$class: 'UsernamePasswordMultiBinding', credentialsId: "${params.ToolGitLabRepository_Credentials}", usernameVariable: 'git_username', passwordVariable: 'git_password']
+                            ]) {
+                                sh "git clone https://${git_username}:${git_password}@gitlab.eurecom.fr/oai/openair-cn-ci-scripts.git ci-scripts"
+                        }
+                    } else {
                         echo '\u26D4 \u001B[31;1m Cannot retrieve Private GitLab w/ tools without credentials\u001B[0m \u2639'
                         sh "exit EXIT_FAILURE"
                     }
@@ -64,7 +72,8 @@ pipeline {
         }
         stage ('Retrieve Source Code') {
             steps {
-                    sh "sudo sak4ci init  --management-nw '192.168.21.0/24'"
+                sh "sudo sak4ci init  --management-nw '192.168.21.0/24'"
+                sh "sudo -HE PYTHONPATH=${PYTHONPATH} ./ci-scripts/host/scripts/sak4ci init  --management-nw '192.168.21.0/24'"
             }
         }
     }
