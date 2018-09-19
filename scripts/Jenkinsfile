@@ -81,6 +81,33 @@ pipeline {
             }
         }
     }
+    post {
+        success {
+            script {
+                def message = "Build job #" + BUILD_ID + " completed"
+                updateGithubCommitStatus(currentBuild, message)
+            }
+        }
+        failure {
+            script {
+                def message = "Build job #" + BUILD_ID + " : One step of job failed"
+                updateGithubCommitStatus(currentBuild, message)
+            }
+        }
+        unstable {
+            script {
+                def message = "Build job #" + BUILD_ID + " : One step of job is unstable"
+                updateGithubCommitStatus(currentBuild, message)
+            }
+        }
+        aborted {
+            updateGithubCommitStatus(currentBuild, "Build job aborted: pipeline script issue?")
+            script {
+                def message = "Build job #" + BUILD_ID + " aborted: pipeline script issue?"
+                updateGithubCommitStatus(currentBuild, message)
+            }
+        }
+    }
 }
 
 def getRepoURL() {
