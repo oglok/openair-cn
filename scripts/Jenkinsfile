@@ -57,6 +57,10 @@ pipeline {
                         allParametersPresent = false
                     }
                     if (allParametersPresent) {
+                        sh "sudo git clean -x -d -f"
+                        if (fileExists("ci-scripts")) {
+                            sh "sudo rm -Rf ci-scripts"
+                        }
                         withCredentials([
                             [$class: 'UsernamePasswordMultiBinding', credentialsId: "${params.ToolGitLabRepository_Credentials}", usernameVariable: 'git_username', passwordVariable: 'git_password']
                             ]) {
@@ -71,6 +75,7 @@ pipeline {
         }
         stage ('Retrieve Source Code') {
             steps {
+                echo '\u2705 \u001B[32mRetrieve Source Code\u001B[0m'
                 sh "sudo -HE PYTHONPATH=${PYTHONPATH} ./ci-scripts/host/scripts/sak4ci init  --management-nw '192.168.21.0/24'"
                 sh "sudo -HE PYTHONPATH=${PYTHONPATH} ./ci-scripts/host/scripts/sak4ci scm --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER}"
             }
