@@ -109,8 +109,8 @@ pipeline {
         cleanup {
             script {
                 if (fileExists("${WORKSPACE}/../../local_archives")) {
-                    sh "zip ${JOB_NAME}-${BUILD_ID}.zip *.log"
-                    sh "mv ${JOB_NAME}-${BUILD_ID}.zip ${WORKSPACE}/../../local_archives"
+                    sh "tar -cjhf ${JOB_NAME}-${BUILD_ID}.bz2 *.log"
+                    sh "mv ${JOB_NAME}-${BUILD_ID}.bz2 ${WORKSPACE}/../../local_archives"
                 }
             }
         }
