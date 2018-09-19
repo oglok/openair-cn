@@ -1,7 +1,24 @@
-// Temporary script to build OpenAirInterface Core Network
-// Author    : Raphael Defosseux
-// Copyright : OpenAirInterface Software Alliance (2018)
-// Version   : 0.1
+#!/bin/groovy
+/*
+ * Licensed to the OpenAirInterface (OAI) Software Alliance under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The OpenAirInterface Software Alliance licenses this file to You under
+ * the OAI Public License, Version 1.1  (the "License"); you may not use this file
+ * except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.openairinterface.org/?page_id=698
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *-------------------------------------------------------------------------------
+ * For more information about the OpenAirInterface (OAI) Software Alliance:
+ *      contact@openairinterface.org
+ */
 
 pipeline {
     agent {
@@ -16,7 +33,6 @@ pipeline {
         dns1 = "192.168.106.10"
         dns2 = "192.168.106.12"
         vm_display = "False"
-        //vm_template = "CN-Mobility-CI"
         vm_template = "CN-CI-4G"
         spgw_kernel_version = "kernel-4.9"
         mme_vm_template = "template${vm_template}"
@@ -27,175 +43,29 @@ pipeline {
     stages {
         stage ('Verify Parameters') {
             steps {
-                echo 'Verify Parameters'
-                echo "Git URL    is ${GIT_URL}"
-                echo "Git Branch is ${GIT_BRANCH}"
-                echo "Git Commit is ${GIT_COMMIT}"
-                echo "Node       is ${NODE_NAME}"
-                sh "sudo mkdir -p ${WORKSPACE}/tmp"
+                script {
+                    echo '\u2705 \u001B[32mVerify Parameters\u001B[0m'
+                    echo "Git URL    is ${GIT_URL}"
+                    echo "Git Branch is ${GIT_BRANCH}"
+                    echo "Git Commit is ${GIT_COMMIT}"
+                    echo "Node       is ${NODE_NAME}"
+
+                    def allParametersPresent = true
+
+                    if (params.ToolGitLabRepository_Credentials == null) {
+                        allParametersPresent = false
+                    }
+                    if (allParametersPresent == false) {
+                        echo '\u2639 \u001B[31mCannot retrieve Private GitLab w/ tools without credentials\u001B[0m'
+                        sh "exit -1"
+                    }
+                }
             }
         }
         stage ('Retrieve Source Code') {
             steps {
-                dir ('tmp') {
                     sh "sudo sak4ci init  --management-nw '192.168.21.0/24'"
-                    sh "sudo sak4ci scm --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER} -u ${GIT_URL} -C ${GIT_COMMIT}"
-                }
             }
-        }
-        stage ('Start MME VM') {
-            steps {
-                dir ('tmp') {
-                    timeout(time: 2, unit: 'MINUTES') {
-                        sh "sudo sak4ci install-vm --clone-template True  --snapshot yes --start-vm True --vm-display ${vm_display} --nf-type mme --job-name ${JOB_NAME} --template-domain ${mme_vm_template} --build-id ${BUILD_NUMBER} --dns1 ${dns1} --dns2 ${dns2}"
-                    }
-                }
-            }
-        }
-        stage ('Start HSS VM') {
-            steps {
-                dir ('tmp') {
-                    timeout(time: 2, unit: 'MINUTES') {
-                        sh "sudo sak4ci install-vm --clone-template True  --snapshot yes --start-vm True --vm-display ${vm_display} --nf-type hss --job-name ${JOB_NAME} --template-domain ${hss_vm_template} --build-id ${BUILD_NUMBER} --dns1 ${dns1} --dns2 ${dns2}"
-                    }
-                }
-            }
-        }
-        stage ('Start SPGW VM') {
-            steps {
-                dir ('tmp') {
-                    timeout(time: 2, unit: 'MINUTES') {
-                        sh "sudo sak4ci install-vm --clone-template True  --snapshot yes --start-vm True --vm-display ${vm_display} --nf-type spgw --job-name ${JOB_NAME} --template-domain ${spgw_vm_template} --build-id ${BUILD_NUMBER} --dns1 ${dns1} --dns2 ${dns2}"
-                    }
-                }
-            }
-        }
-        stage('Install libs & sw') {
-            parallel {
-                stage ('MME SW') {
-                    steps {
-                        dir ('tmp') {
-                            timeout(time: 25, unit: 'MINUTES') {
-                                sh "sudo sak4ci install-libs-packs4nf --nf-type mme --keep-vm-alive True --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER}"
-                            }
-                        }
-                    }
-                }
-                stage ('HSS SW') {
-                    steps {
-                        dir ('tmp') {
-                            timeout(time: 25, unit: 'MINUTES') {
-                                sh "sudo sak4ci install-libs-packs4nf --nf-type hss --keep-vm-alive True --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER}"
-                            }
-                        }
-                    }
-                }
-                stage ('SPGW SW') {
-                    steps {
-                        dir ('tmp') {
-                            timeout(time: 25, unit: 'MINUTES') {
-                                sh "sudo sak4ci install-libs-packs4nf --nf-type spgw --keep-vm-alive True --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER}"
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        stage('Build Core Network Functions') {
-            parallel {
-                stage ('Build MME') {
-                    steps {
-                        dir ('tmp') {
-                            sh "sudo sak4ci build-nf --nf-type mme --keep-vm-alive True --build-type Release --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER}"
-                        }
-                    }
-                }
-                stage ('Build HSS') {
-                    steps {
-                        dir ('tmp') {
-                            sh "sudo sak4ci build-nf --nf-type hss --keep-vm-alive True --build-type Release --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER}"
-                        }
-                    }
-                }
-                stage ('Build SPGW') {
-                    steps {
-                        dir ('tmp') {
-                            sh "sudo sak4ci build-nf --nf-type spgw --keep-vm-alive True --build-type Release --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER}"
-                        }
-                    }
-                }
-            }
-        }
-        stage('Generate CN configs') {
-            parallel {
-                stage ('Config MME') {
-                    steps {
-                        dir ('tmp') {
-                            sh "sudo sak4ci nf-configure --nf-type mme --keep-vm-alive True --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER}"
-                        }
-                    }
-                }
-                stage ('Config HSS') {
-                    steps {
-                        dir ('tmp') {
-                            sh "sudo sak4ci nf-configure --nf-type hss --keep-vm-alive True --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER}"
-                        }
-                    }
-                }
-                stage ('Config SPGW') {
-                    steps {
-                        dir ('tmp') {
-                            sh "sudo sak4ci nf-configure --nf-type spgw --keep-vm-alive True --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER}"
-                        }
-                    }
-                }
-            }
-        }
-    }
-    post {
-        success {
-            script {
-                def message = "Build job #" + BUILD_ID + " completed"
-                updateGithubCommitStatus(currentBuild, message)
-            }
-        }
-        failure {
-            script {
-                def message = "Build job #" + BUILD_ID + " : One step of job failed"
-                updateGithubCommitStatus(currentBuild, message)
-            }
-        }
-        unstable {
-            script {
-                def message = "Build job #" + BUILD_ID + " : One step of job is unstable"
-                updateGithubCommitStatus(currentBuild, message)
-            }
-        }
-        aborted {
-            updateGithubCommitStatus(currentBuild, "Build job aborted: pipeline script issue?")
-            script {
-                def message = "Build job #" + BUILD_ID + " aborted: pipeline script issue?"
-                updateGithubCommitStatus(currentBuild, message)
-            }
-        }
-        cleanup {
-            dir ('tmp') {
-                script {
-                    if ("abeille".equals(env.NODE_NAME)) {
-                        sh "sudo sak4ci clean-build --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER} --complete True"
-                    }
-                    if ("orion".equals(env.NODE_NAME)) {
-                        sh "sudo sak4ci clean-build --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER}"
-                        sh "sudo virsh undefine mme0${JOB_NAME}b${BUILD_NUMBER}"
-                        sh "sudo virsh undefine hss0${JOB_NAME}b${BUILD_NUMBER}"
-                        sh "sudo virsh undefine spgw0${JOB_NAME}b${BUILD_NUMBER}"
-                        sh "sudo rm -Rf /var/lib/libvirt/images/mme0${JOB_NAME}b${BUILD_NUMBER}-snap.qcow2"
-                        sh "sudo rm -Rf /var/lib/libvirt/images/hss0${JOB_NAME}b${BUILD_NUMBER}-snap.qcow2"
-                        sh "sudo rm -Rf /var/lib/libvirt/images/spgw0${JOB_NAME}b${BUILD_NUMBER}-snap.qcow2"
-                    }
-                }
-            }
-            sh "sudo rm -Rf ${WORKSPACE}/tmp"
         }
     }
 }
