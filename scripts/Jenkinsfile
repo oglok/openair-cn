@@ -56,8 +56,8 @@ pipeline {
                         allParametersPresent = false
                     }
                     if (allParametersPresent == false) {
-                        echo '\u2639 \u001B[31mCannot retrieve Private GitLab w/ tools without credentials\u001B[0m'
-                        sh "exit -1"
+                        echo '\u26D4 \u001B[31;1m Cannot retrieve Private GitLab w/ tools without credentials\u001B[0m \u2639'
+                        sh "exit EXIT_FAILURE"
                     }
                 }
             }
