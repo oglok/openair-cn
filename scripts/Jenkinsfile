@@ -76,8 +76,8 @@ pipeline {
         stage ('Retrieve Source Code') {
             steps {
                 echo '\u2705 \u001B[32mRetrieve Source Code\u001B[0m'
-                sh "sudo -HE PYTHONPATH=${PYTHONPATH} ./ci-scripts/host/scripts/sak4ci init  --management-nw '192.168.21.0/24'"
-                sh "sudo -HE PYTHONPATH=${PYTHONPATH} ./ci-scripts/host/scripts/sak4ci scm --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER}"
+                sh "sudo -HE PYTHONPATH=${PYTHONPATH} ./ci-scripts/host/scripts/sak4ci init  --management-nw '192.168.21.0/24' > init.log 2>&1"
+                sh "sudo -HE PYTHONPATH=${PYTHONPATH} ./ci-scripts/host/scripts/sak4ci scm --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER} > scm.log 2>&1"
             }
         }
     }
@@ -101,10 +101,17 @@ pipeline {
             }
         }
         aborted {
-            updateGithubCommitStatus(currentBuild, "Build job aborted: pipeline script issue?")
             script {
                 def message = "Build job #" + BUILD_ID + " aborted: pipeline script issue?"
                 updateGithubCommitStatus(currentBuild, message)
+            }
+        }
+        cleanup {
+            script {
+                if (fileExists("${WORKSPACE}/../../local_archives")) {
+                    sh "zip ${JOB_NAME}-${BUILD_ID}.zip *.log"
+                    sh "mv ${JOB_NAME}-${BUILD_ID}.zip ${WORKSPACE}/../../local_archives"
+                }
             }
         }
     }
