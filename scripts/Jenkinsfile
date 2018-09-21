@@ -138,7 +138,7 @@ pipeline {
                 sh "sudo -HE env MYPYTHONPATH=${MYPYTHONPATH} ./ci-scripts/host/scripts/sak4ci clean-build --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER} > clean-build.log 2>&1"
                 if (fileExists("${WORKSPACE}/../../local_archives")) {
                     sh "tar -cjhf ${JOB_NAME}-build-${BUILD_ID}.tar.bz2 *.log"
-                    sh "mv ${JOB_NAME}-build${BUILD_ID}.tar.bz2 ${WORKSPACE}/../../local_archives"
+                    sh "mv ${JOB_NAME}-build-${BUILD_ID}.tar.bz2 ${WORKSPACE}/../../local_archives"
                 }
             }
         }
