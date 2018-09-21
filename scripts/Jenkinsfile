@@ -41,7 +41,7 @@ pipeline {
         mme_vm_template = "template${vm_template}"
         hss_vm_template = "template${vm_template}"
         spgw_vm_template = "template${vm_template}-${spgw_kernel_version}"
-        PYTHONPATH=":${WORKSPACE}/ci-scripts/python/oaicnci/"
+        MYPYTHONPATH="${WORKSPACE}/ci-scripts/python/oaicnci/"
     }
 
     stages {
@@ -79,8 +79,32 @@ pipeline {
         stage ('Retrieve Source Code') {
             steps {
                 echo '\u2705 \u001B[32mRetrieve Source Code\u001B[0m'
-                sh "sudo -HE PYTHONPATH=${PYTHONPATH} ./ci-scripts/host/scripts/sak4ci init  --management-nw '192.168.21.0/24' > init.log 2>&1"
-                sh "sudo -HE PYTHONPATH=${PYTHONPATH} ./ci-scripts/host/scripts/sak4ci scm --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER} > scm.log 2>&1"
+                sh "sudo -HE env MYPYTHONPATH=${MYPYTHONPATH} ./ci-scripts/host/scripts/sak4ci init --management-nw '192.168.21.0/24' > init.log 2>&1"
+                sh "sudo -HE env MYPYTHONPATH=${MYPYTHONPATH} ./ci-scripts/host/scripts/sak4ci scm --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER} > scm.log 2>&1"
+            }
+        }
+        stage ('Start MME VM') {
+            steps {
+                echo '\u2705 \u001B[32mStarting MME VM\u001B[0m'
+                timeout(time: 2, unit: 'MINUTES') {
+                    sh "sudo -HE env MYPYTHONPATH=${MYPYTHONPATH} ./ci-scripts/host/scripts/sak4ci install-vm --clone-template True  --snapshot yes --start-vm True --vm-display ${vm_display} --nf-type mme --job-name ${JOB_NAME} --template-domain ${mme_vm_template} --build-id ${BUILD_NUMBER} --dns1 ${dns1} --dns2 ${dns2} > mme_start.log 2>&1"
+                }
+            }
+        }
+        stage ('Start HSS VM') {
+            steps {
+                echo '\u2705 \u001B[32mStarting HSS VM\u001B[0m'
+                timeout(time: 2, unit: 'MINUTES') {
+                    sh "sudo -HE env MYPYTHONPATH=${MYPYTHONPATH} ./ci-scripts/host/scripts/sak4ci install-vm --clone-template True  --snapshot yes --start-vm True --vm-display ${vm_display} --nf-type hss --job-name ${JOB_NAME} --template-domain ${hss_vm_template} --build-id ${BUILD_NUMBER} --dns1 ${dns1} --dns2 ${dns2} > hss_start.log 2>&1"
+                }
+            }
+        }
+        stage ('Start SPGW VM') {
+            steps {
+                echo '\u2705 \u001B[32mStarting HSS VM\u001B[0m'
+                timeout(time: 2, unit: 'MINUTES') {
+                    sh "sudo -HE env MYPYTHONPATH=${MYPYTHONPATH} ./ci-scripts/host/scripts/sak4ci install-vm --clone-template True  --snapshot yes --start-vm True --vm-display ${vm_display} --nf-type spgw --job-name ${JOB_NAME} --template-domain ${spgw_vm_template} --build-id ${BUILD_NUMBER} --dns1 ${dns1} --dns2 ${dns2} > spgw_start.log 2>&1"
+                }
             }
         }
     }
@@ -111,9 +135,10 @@ pipeline {
         }
         cleanup {
             script {
+                sh "sudo -HE env MYPYTHONPATH=${MYPYTHONPATH} ./ci-scripts/host/scripts/sak4ci clean-build --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER} > clean-build.log 2>&1"
                 if (fileExists("${WORKSPACE}/../../local_archives")) {
-                    sh "tar -cjhf ${JOB_NAME}-build${BUILD_ID}.bz2 *.log"
-                    sh "mv ${JOB_NAME}-build${BUILD_ID}.bz2 ${WORKSPACE}/../../local_archives"
+                    sh "tar -cjhf ${JOB_NAME}-build-${BUILD_ID}.tar.bz2 *.log"
+                    sh "mv ${JOB_NAME}-build${BUILD_ID}.tar.bz2 ${WORKSPACE}/../../local_archives"
                 }
             }
         }
