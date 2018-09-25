@@ -162,19 +162,41 @@ pipeline {
                 stage ('Config MME') {
                     steps {
                         echo '\u2705 \u001B[32mConfiguring MME vNF\u001B[0m'
-                        sh "sudo -HE env MYPYTHONPATH=${MYPYTHONPATH} ./ci-scripts/host/scripts/sak4ci nf-configure --nf-type mme --keep-vm-alive True --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER} > mme_config.log 2>&1"
+                        sh "sudo -HE env MYPYTHONPATH=${MYPYTHONPATH} ./ci-scripts/host/scripts/sak4ci configure-nf --nf-type mme --keep-vm-alive True --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER} > mme_config.log 2>&1"
                     }
                 }
                 stage ('Config HSS') {
                     steps {
                         echo '\u2705 \u001B[32mConfiguring HSS vNF\u001B[0m'
-                        sh "sudo -HE env MYPYTHONPATH=${MYPYTHONPATH} ./ci-scripts/host/scripts/sak4ci nf-configure --nf-type hss --keep-vm-alive True --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER} --option Release14 > hss_config.log 2>&1"
+                        sh "sudo -HE env MYPYTHONPATH=${MYPYTHONPATH} ./ci-scripts/host/scripts/sak4ci configure-nf --nf-type hss --keep-vm-alive True --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER} --option Release14 > hss_config.log 2>&1"
                     }
                 }
                 stage ('Config SPGW') {
                     steps {
                         echo '\u2705 \u001B[32mConfiguring SPGW vNF\u001B[0m'
-                        sh "sudo -HE env MYPYTHONPATH=${MYPYTHONPATH} ./ci-scripts/host/scripts/sak4ci nf-configure --nf-type spgw --keep-vm-alive True --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER} > spgw_config.log 2>&1"
+                        sh "sudo -HE env MYPYTHONPATH=${MYPYTHONPATH} ./ci-scripts/host/scripts/sak4ci configure-nf --nf-type spgw --keep-vm-alive True --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER} > spgw_config.log 2>&1"
+                    }
+                }
+            }
+        }
+        stage('Start Core Network Functions') {
+            parallel {
+                stage ('Start MME') {
+                    steps {
+                        echo '\u2705 \u001B[32mStarting MME vNF\u001B[0m'
+                        sh "sudo -HE env MYPYTHONPATH=${MYPYTHONPATH} ./ci-scripts/host/scripts/sak4ci start-nf --nf-type mme --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER} > mme_start.log 2>&1"
+                    }
+                }
+                stage ('Start HSS') {
+                    steps {
+                        echo '\u2705 \u001B[32mStarting HSS vNF\u001B[0m'
+                        sh "sudo -HE env MYPYTHONPATH=${MYPYTHONPATH} ./ci-scripts/host/scripts/sak4ci start-nf --nf-type hss --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER} --option Release14 > hss_start.log 2>&1"
+                    }
+                }
+                stage ('Start SPGW') {
+                    steps {
+                        echo '\u2705 \u001B[32mStarting SPGW vNF\u001B[0m'
+                        sh "sudo -HE env MYPYTHONPATH=${MYPYTHONPATH} ./ci-scripts/host/scripts/sak4ci start-nf --nf-type spgw --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER} > spgw_start.log 2>&1"
                     }
                 }
             }
