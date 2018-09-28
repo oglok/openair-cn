@@ -60,14 +60,14 @@ pipeline {
                         allParametersPresent = false
                     }
                     if (allParametersPresent) {
-                        sh "sudo git clean -x -d -f"
+                        sh "sudo git clean -x -d -f > /dev/null 2>&1"
                         if (fileExists("ci-scripts")) {
-                            sh "sudo rm -Rf ci-scripts"
+                            sh "sudo rm -Rf ci-scripts > /dev/null 2>&1"
                         }
                         withCredentials([
                             [$class: 'UsernamePasswordMultiBinding', credentialsId: "${params.ToolGitLabRepository_Credentials}", usernameVariable: 'git_username', passwordVariable: 'git_password']
                             ]) {
-                                sh "git clone https://${git_username}:${git_password}@gitlab.eurecom.fr/oai/openair-cn-ci-scripts.git ci-scripts"
+                                sh "git clone https://${git_username}:${git_password}@gitlab.eurecom.fr/oai/openair-cn-ci-scripts.git ci-scripts > git_clone.log 2>&1"
                         }
                     } else {
                         echo '\u26D4 \u001B[31;1m Cannot retrieve Private GitLab w/ tools without credentials\u001B[0m \u2639'
@@ -231,6 +231,14 @@ pipeline {
             script {
                 echo '\u2705 \u001B[32mCleaning build VMs and log files\u001B[0m'
                 sh "sudo -HE env MYPYTHONPATH=${MYPYTHONPATH} ./ci-scripts/host/scripts/sak4ci clean-build --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER} > clean-build.log 2>&1"
+
+                echo '\u2705 \u001B[32mGenerating Report\u001B[0m'
+                sh "sudo -HE env MYPYTHONPATH=${MYPYTHONPATH} ./ci-scripts/host/scripts/sak4ci report-html-build --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER} > report-build.log 2>&1"
+                if (fileExists('test_results_oai_cn.html')) {
+                    sh "sudo sed -i -e 's#Build-ID: ${BUILD_ID}#Build-ID: <a href=\"${BUILD_URL}\">${BUILD_ID}</a>#' test_results_oai_cn.html"
+                    archiveArtifacts artifacts: 'test_results_oai_cn.html'
+                }
+
                 if (fileExists("${WORKSPACE}/../../local_archives")) {
                     sh "tar -cjhf ${JOB_NAME}-build-${BUILD_ID}.tar.bz2 *.log"
                     sh "mv ${JOB_NAME}-build-${BUILD_ID}.tar.bz2 ${WORKSPACE}/../../local_archives"
