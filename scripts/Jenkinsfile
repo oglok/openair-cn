@@ -243,6 +243,9 @@ pipeline {
                     sh "tar -cjhf ${JOB_NAME}-build-${BUILD_ID}.tar.bz2 *.log"
                     sh "mv ${JOB_NAME}-build-${BUILD_ID}.tar.bz2 ${WORKSPACE}/../../local_archives"
                 }
+                if (fileExists("${WORKSPACE}/ci-scripts")) {
+                        sh "sudo rm -Rf ${WORKSPACE}/ci-scripts > /dev/null 2>&1"
+                }
             }
         }
     }
