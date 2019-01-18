@@ -20,6 +20,16 @@
  *      contact@openairinterface.org
  */
 
+// Abstraction function to send social media messages:
+// like on Slack or Mattermost
+def sendSocialMediaMessage(pipeChannel, pipeColor, pipeMessage) {
+    if (params.pipelineUsesSlack != null) {
+        if (params.pipelineUsesSlack) {
+            slackSend channel: pipeChannel, color: pipeColor, message: pipeMessage
+        }
+    }
+}
+
 // Location of the CN executor node 
 def cn_ci_host = params.Host_CN_CI_Server
 
@@ -207,24 +217,32 @@ pipeline {
             script {
                 def message = "Build job #" + BUILD_ID + " completed"
                 updateGithubCommitStatus(currentBuild, message)
+                def socialMessage = "OAI " + JOB_NAME + " build (" + BUILD_ID + "): passed (" + BUILD_URL + ")"
+                sendSocialMediaMessage('ci-epc', 'good', socialMessage)
             }
         }
         failure {
             script {
                 def message = "Build job #" + BUILD_ID + " : One step of job failed"
                 updateGithubCommitStatus(currentBuild, message)
+                def socialMessage = "OAI " + JOB_NAME + " build (" + BUILD_ID + "): failed (" + BUILD_URL + ")"
+                sendSocialMediaMessage('ci-epc', 'danger', socialMessage)
             }
         }
         unstable {
             script {
                 def message = "Build job #" + BUILD_ID + " : One step of job is unstable"
                 updateGithubCommitStatus(currentBuild, message)
+                def socialMessage = "OAI " + JOB_NAME + " build (" + BUILD_ID + "): unstable (" + BUILD_URL + ")"
+                sendSocialMediaMessage('ci-epc', 'danger', socialMessage)
             }
         }
         aborted {
             script {
                 def message = "Build job #" + BUILD_ID + " aborted: pipeline script issue?"
                 updateGithubCommitStatus(currentBuild, message)
+                def socialMessage = "OAI " + JOB_NAME + " build (" + BUILD_ID + "): aborted (" + BUILD_URL + ")"
+                sendSocialMediaMessage('ci-epc', 'danger', socialMessage)
             }
         }
         cleanup {
@@ -246,9 +264,27 @@ pipeline {
                 if (fileExists("${WORKSPACE}/ci-scripts")) {
                         sh "sudo rm -Rf ${WORKSPACE}/ci-scripts > /dev/null 2>&1"
                 }
+
+                // Sending an email to the last committer. Maybe not the Pull Request's author.
+                def emailTo = getCommitterEmail()
+                emailext attachmentsPattern: '*results*.html',
+                     body: '''Hi,
+Here are attached HTML report files for $PROJECT_NAME - Build # $BUILD_NUMBER - $BUILD_STATUS!
+
+Regards,
+OAI CI Team''',
+                     replyTo: 'no-reply@openairinterface.org',
+                     subject: '$PROJECT_NAME - Build # $BUILD_NUMBER - $BUILD_STATUS!',
+                     to: emailTo
             }
         }
     }
+}
+
+// GitHub retrieve email of last committer
+def getCommitterEmail() {
+  sh "git log -1 --pretty=format:\"%ce\" > .git/commit-email"
+  return readFile(".git/commit-email").trim()
 }
 
 // Github commit update functions
