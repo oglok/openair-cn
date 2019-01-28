@@ -83,6 +83,15 @@ pipeline {
                 sh "sudo -HE env MYPYTHONPATH=${MYPYTHONPATH} ./ci-scripts/host/scripts/sak4ci scm --job-name ${JOB_NAME} --build-id ${BUILD_NUMBER} > scm.log 2>&1"
             }
         }
+        stage ('Static Code Analysis') {
+            steps {
+                echo '\u2705 \u001B[32mStatic Code Analysis with cppcheck\u001B[0m'
+                sh "cppcheck --enable=warning --force --xml --xml-version=2 . 2> cppcheck.xml 1> cppcheck_build.log"
+                if (fileExists('cppcheck.xml')) {
+                    archiveArtifacts artifacts: 'cppcheck.xml'
+                }
+            }
+        }
         stage ('Start MME VM') {
             steps {
                 echo '\u2705 \u001B[32mStarting MME VM\u001B[0m'
