@@ -83,7 +83,7 @@ pipeline {
                                 sh "git clone https://${git_username}:${git_password}@gitlab.eurecom.fr/oai/openair-cn-ci-scripts.git ci-scripts > git_clone.log 2>&1"
                                 if (!("none".equals(params.ToolGitLabRepository_Tag))) {
                                     dir ('ci-scripts') {
-                                        sh "git checkout -f ${params.ToolGitLabRepository_Tag} >> git_clone.log 2>&1"
+                                        sh "git checkout -f ${params.ToolGitLabRepository_Tag} >> ../git_clone.log 2>&1"
                                     }
                                 }
                         }
