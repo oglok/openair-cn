@@ -33,6 +33,7 @@ def sendSocialMediaMessage(pipeChannel, pipeColor, pipeMessage) {
 // Location of the CN executor node 
 def cn_ci_host = params.Host_CN_CI_Server
 
+// ====================================
 pipeline {
     agent {
         label cn_ci_host
