@@ -69,6 +69,9 @@ pipeline {
                     if (params.ToolGitLabRepository_Credentials == null) {
                         allParametersPresent = false
                     }
+                    if (params.ToolGitLabRepository_Tag == null) {
+                        allParametersPresent = false
+                    }
                     if (allParametersPresent) {
                         sh "sudo git clean -x -d -f > /dev/null 2>&1"
                         if (fileExists("ci-scripts")) {
@@ -78,9 +81,14 @@ pipeline {
                             [$class: 'UsernamePasswordMultiBinding', credentialsId: "${params.ToolGitLabRepository_Credentials}", usernameVariable: 'git_username', passwordVariable: 'git_password']
                             ]) {
                                 sh "git clone https://${git_username}:${git_password}@gitlab.eurecom.fr/oai/openair-cn-ci-scripts.git ci-scripts > git_clone.log 2>&1"
+                                if (!("none".equals(params.ToolGitLabRepository_Tag))) {
+                                    dir ('ci-scripts') {
+                                        sh "git checkout -f ${params.ToolGitLabRepository_Tag} >> git_clone.log 2>&1"
+                                    }
+                                }
                         }
                     } else {
-                        echo '\u26D4 \u001B[31;1m Cannot retrieve Private GitLab w/ tools without credentials\u001B[0m \u2639'
+                        echo '\u26D4 \u001B[31;1m Cannot retrieve Private GitLab w/ tools without credentials or a tag definition\u001B[0m \u2639'
                         sh "exit EXIT_FAILURE"
                     }
                 }
