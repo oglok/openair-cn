@@ -127,14 +127,17 @@ void DataAccess::connect()
 {
    SCassFuture connect_future = m_db.connect();
 
-   connect_future.wait();
-
-   if ( connect_future.errorCode() != CASS_OK )
+   // Try 3 times to connect to Cassandra
+   for ( int i=0; i < 2; i++)
    {
-      throw DAException(
-      SUtility::string_format( "DataAccess::%s - Unable to connect to %s - error_code=%d",
-            __func__, m_db.host().c_str(), connect_future.errorCode() )
-      );
+      connect_future.wait();
+      if (( connect_future.errorCode() != CASS_OK ) && ( i == 2 ))
+      {
+         throw DAException(
+         SUtility::string_format( "DataAccess::%s - Unable to connect to %s - error_code=%d",
+              __func__, m_db.host().c_str(), connect_future.errorCode() )
+         );
+      } else if ( connect_future.errorCode() == CASS_OK ) { i = 2; }
    }
 
    m_db.setCoreConnectionsPerHost(Options::getcasscoreconnections());
